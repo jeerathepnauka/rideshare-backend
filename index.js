@@ -199,6 +199,31 @@ app.get('/api/ride/status/:province/:rideId', async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 });
+// API สำหรับดึงรายชื่อผู้โดยสารที่กำลังค้นหาคนขับ (status: 'searching')
+app.get('/api/ride/pending/:province', async (req, res) => {
+  try {
+    const { province } = req.params;
+    const ridesRef = db.ref(`rides/${province}`);
+    
+    // ดึงข้อมูลทั้งหมดในจังหวัดนั้น
+    const snapshot = await ridesRef.once('value');
+    const ridesData = snapshot.val();
+    
+    let pendingRides = [];
+    if (ridesData) {
+      // คัดกรองเอาเฉพาะงานที่สถานะเป็น 'searching'
+      for (const [key, value] of Object.entries(ridesData)) {
+        if (value.status === 'searching') {
+          pendingRides.push({ id: key, ...value });
+        }
+      }
+    }
+    
+    res.status(200).json({ success: true, rides: pendingRides });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 // เปิดพอร์ตทำงาน
 const PORT = 3000;
 app.listen(PORT, () => {
